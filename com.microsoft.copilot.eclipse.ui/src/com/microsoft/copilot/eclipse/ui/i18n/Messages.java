@@ -31,12 +31,38 @@ public final class Messages extends NLS {
   public static String menu_quota_copilotUsage;
   public static String menu_quota_codeCompletions;
   public static String menu_quota_chatMessages;
+  public static String menu_quota_monthlyLimit;
+  public static String menu_quota_includedCredits;
+  public static String menu_quota_includedCreditsTooltip;
+  public static String menu_quota_monthlyLimitTooltip;
+  public static String menu_quota_percentUsedFormat;
+  public static String menu_quota_aiCreditsUsedFormat;
+  public static String menu_quota_included;
+  public static String menu_userPlanFormat;
+  public static String menu_quota_noUsageYet;
+  public static String menu_quota_allowanceReset_today;
+  public static String menu_quota_allowanceReset_singular;
+  public static String menu_quota_allowanceReset_plural;
+  public static String menu_quota_manageCopilotTooltip;
+  public static String menu_quota_enableAdditionalUsage;
+  public static String menu_quota_increaseBudget;
+  public static String menu_quota_upgradePlan;
+  public static String menu_quota_unlimitedOrgMessage;
+  public static String menu_quota_plan_free;
+  public static String menu_quota_plan_individual;
+  public static String menu_quota_plan_individualPro;
+  public static String menu_quota_plan_individualMax;
+  public static String menu_quota_plan_business;
+  public static String menu_quota_plan_enterprise;
+  // TODO: Remove these legacy keys after TBB is officially released.
+  // Legacy quota keys retained for installations where token-based billing is not yet enabled by the
+  // language server. When tokenBasedBillingEnabled is false on the CheckQuotaResult the menu
+  // handlers fall back to these strings to preserve the original main-branch UI.
   public static String menu_quota_premiumRequests;
   public static String menu_quota_additionalPremiumRequests;
   public static String menu_quota_enabled;
   public static String menu_quota_disabled;
   public static String menu_quota_allowanceReset;
-  public static String menu_quota_manageCopilotTooltip;
   public static String menu_quota_updateCopilotToPro;
   public static String menu_quota_updateCopilotToProPlus;
   public static String menu_quota_managePaidPremiumRequests;
