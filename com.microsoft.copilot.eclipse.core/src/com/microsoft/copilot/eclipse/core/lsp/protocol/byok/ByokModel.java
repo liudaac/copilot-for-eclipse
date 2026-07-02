@@ -17,6 +17,7 @@ public class ByokModel {
   private boolean isRegistered;
   private boolean isCustomModel;
   private String deploymentUrl;
+  private String baseUrl;
   private String apiKey;
   private ByokModelCapabilities modelCapabilities;
 
@@ -60,6 +61,14 @@ public class ByokModel {
     this.deploymentUrl = deploymentUrl;
   }
 
+  public String getBaseUrl() {
+    return baseUrl;
+  }
+
+  public void setBaseUrl(String baseUrl) {
+    this.baseUrl = baseUrl;
+  }
+
   public ByokModelCapabilities getModelCapabilities() {
     return modelCapabilities;
   }
@@ -82,7 +91,8 @@ public class ByokModel {
 
   @Override
   public int hashCode() {
-    return Objects.hash(modelId, providerName, isRegistered, isCustomModel, deploymentUrl, modelCapabilities, apiKey);
+    return Objects.hash(modelId, providerName, isRegistered, isCustomModel, deploymentUrl, baseUrl, modelCapabilities,
+        apiKey);
   }
 
   @Override
@@ -99,7 +109,7 @@ public class ByokModel {
     ByokModel other = (ByokModel) obj;
     return Objects.equals(modelId, other.modelId) && Objects.equals(providerName, other.providerName)
         && isRegistered == other.isRegistered && isCustomModel == other.isCustomModel
-        && Objects.equals(deploymentUrl, other.deploymentUrl)
+        && Objects.equals(deploymentUrl, other.deploymentUrl) && Objects.equals(baseUrl, other.baseUrl)
         && Objects.equals(modelCapabilities, other.modelCapabilities) && Objects.equals(apiKey, other.apiKey);
   }
 
@@ -111,6 +121,7 @@ public class ByokModel {
     builder.append("isRegistered", isRegistered);
     builder.append("isCustomModel", isCustomModel);
     builder.append("deploymentUrl", deploymentUrl);
+    builder.append("baseUrl", baseUrl);
     builder.append("modelCapabilities", modelCapabilities);
     builder.append("apiKey", apiKey);
     return builder.toString();

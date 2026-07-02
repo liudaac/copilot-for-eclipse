@@ -9,7 +9,7 @@
     "url": "https://github.com/microsoft/copilot-for-eclipse.git"
   },
   "scripts": {
-    "postinstall": "node copy-binaries.js"
+    "postinstall": "node copy-binaries.js && node patch-custom-openai-byok.js"
   },
   "dependencies": {
     "@github/copilot-language-server": "1.502.5",

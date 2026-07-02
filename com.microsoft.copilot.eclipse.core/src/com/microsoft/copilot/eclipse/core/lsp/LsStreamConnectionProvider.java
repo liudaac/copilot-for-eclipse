@@ -61,6 +61,12 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
 
   @Override
   public void start() throws IOException {
+    if (!"true".equalsIgnoreCase(System.getenv("COPILOT_USE_BINARY_LSP"))) {
+      CopilotCore.LOGGER.info("Starting patched JS LSP agent. Set COPILOT_USE_BINARY_LSP=true to use binary agent.");
+      startJsLspAgent();
+      return;
+    }
+
     if ("true".equalsIgnoreCase(System.getenv("COPILOT_DEBUG_LOCAL"))) {
       CopilotCore.LOGGER.info("Forcing JS LSP agent start due to environment variable.");
       startJsLspAgent();
@@ -104,6 +110,7 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   }
 
   private void startJsLspAgent() throws IOException {
+    ensureBundledRipgrepExecutable();
     this.setCommands(getJavaScriptCommands());
     super.start();
     CopilotCore.LOGGER.info("JS agent started successfully.");
@@ -175,6 +182,39 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
   }
 
   private @Nullable String findNodeAbsolutePath() throws IOException {
+    String nodePath = System.getenv("COPILOT_NODE_PATH");
+    if (isUsableNode(nodePath)) {
+      return Path.of(nodePath).toString();
+    }
+
+    nodePath = System.getProperty("org.eclipse.wildwebdeveloper.nodeJSLocation");
+    if (isUsableNode(nodePath)) {
+      return Path.of(nodePath).toString();
+    }
+
+    nodePath = findNodeInPath(System.getenv("PATH"));
+    if (nodePath != null) {
+      return nodePath;
+    }
+
+    if (PlatformUtils.isMac()) {
+      Map<String, String> loginShellEnvironment = getLoginShellEnvironment();
+      nodePath = findNodeInPath(loginShellEnvironment.get("PATH"));
+      if (nodePath != null) {
+        return nodePath;
+      }
+
+      nodePath = executeFirstLine(new String[] { "/bin/zsh", "-l", "-i", "-c", "command -v node" });
+      if (isUsableNode(nodePath)) {
+        return Path.of(nodePath).toString();
+      }
+    }
+
+    nodePath = findNodeInDefaultLocations();
+    if (nodePath != null) {
+      return nodePath;
+    }
+
     try {
       // The 'wildwebdeveloper' bundle is optional for Eclipse. Ensure it is available before attempting to use it.
       Class.forName("org.eclipse.wildwebdeveloper.embedder.node.NodeJSManager");
@@ -188,6 +228,122 @@ public class LsStreamConnectionProvider extends ProcessStreamConnectionProvider 
       throw new IOException("Failed to find Node.js path");
     }
     return nodeJsLocation.getAbsolutePath();
+  }
+
+  private @Nullable String findNodeInPath(@Nullable String pathValue) {
+    if (StringUtils.isBlank(pathValue)) {
+      return null;
+    }
+
+    String[] paths = pathValue.split(File.pathSeparator);
+    for (String path : paths) {
+      String nodePath = Path.of(path, PlatformUtils.isWindows() ? "node.exe" : "node").toString();
+      if (isUsableNode(nodePath)) {
+        return nodePath;
+      }
+    }
+    return null;
+  }
+
+  private @Nullable String findNodeInDefaultLocations() {
+    List<String> candidatePaths = PlatformUtils.isWindows()
+        ? List.of("C:\\Program Files\\nodejs\\node.exe")
+        : List.of("/opt/homebrew/bin/node", "/usr/local/bin/node", "/usr/bin/node");
+
+    for (String candidatePath : candidatePaths) {
+      if (isUsableNode(candidatePath)) {
+        return Path.of(candidatePath).toString();
+      }
+    }
+    return null;
+  }
+
+  private boolean isUsableNode(@Nullable String nodePath) {
+    if (StringUtils.isBlank(nodePath)) {
+      return false;
+    }
+
+    File node = Path.of(nodePath).toFile();
+    if (!node.exists() || !node.canExecute()) {
+      return false;
+    }
+
+    String version = executeFirstLine(new String[] { node.getAbsolutePath(), "-v" });
+    if (StringUtils.isBlank(version)) {
+      return false;
+    }
+
+    CopilotCore.LOGGER.info("Using Node.js for patched JS LSP agent: " + node.getAbsolutePath() + " (" + version + ")");
+    return true;
+  }
+
+  private @Nullable String executeFirstLine(String[] command) {
+    Process process = null;
+    try {
+      process = new ProcessBuilder(command).start();
+      try (BufferedReader reader = new BufferedReader(
+          new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+        return reader.readLine();
+      }
+    } catch (IOException e) {
+      CopilotCore.LOGGER.error("Unable to execute command: " + String.join(" ", command), e);
+      return null;
+    } finally {
+      if (process != null) {
+        process.destroy();
+      }
+    }
+  }
+
+  private void ensureBundledRipgrepExecutable() throws IOException {
+    Path rgPath = findBundledRipgrepPath();
+    if (rgPath == null || !Files.exists(rgPath)) {
+      return;
+    }
+
+    File executable = rgPath.toFile();
+    if (!executable.canExecute() && !executable.setExecutable(true)) {
+      throw new IOException("Could not make bundled ripgrep executable: " + rgPath);
+    }
+  }
+
+  private @Nullable Path findBundledRipgrepPath() {
+    Path distPath = findAgentDistDirectoryPath();
+    if (distPath == null) {
+      return null;
+    }
+
+    String osDirectory = getRipgrepOsDirectory();
+    String archDirectory = getRipgrepArchDirectory();
+    if (osDirectory == null || archDirectory == null) {
+      return null;
+    }
+
+    String executableName = PlatformUtils.isWindows() ? "rg.exe" : "rg";
+    return distPath.resolve("bin").resolve(osDirectory).resolve(archDirectory).resolve(executableName);
+  }
+
+  private @Nullable String getRipgrepOsDirectory() {
+    if (PlatformUtils.isMac()) {
+      return "darwin";
+    }
+    if (PlatformUtils.isLinux()) {
+      return "linux";
+    }
+    if (PlatformUtils.isWindows()) {
+      return "win32";
+    }
+    return null;
+  }
+
+  private @Nullable String getRipgrepArchDirectory() {
+    if (PlatformUtils.isArm64()) {
+      return "arm64";
+    }
+    if (PlatformUtils.isIntel64()) {
+      return "x64";
+    }
+    return null;
   }
 
   private @Nullable String findJavaScriptLanguageServerPath() throws IOException {

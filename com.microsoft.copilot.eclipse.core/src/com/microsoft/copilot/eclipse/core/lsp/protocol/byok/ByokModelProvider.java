@@ -12,7 +12,8 @@ public enum ByokModelProvider {
   GEMINI("Gemini"),
   GROQ("Groq"),
   OPENROUTER("OpenRouter"),
-  ANTHROPIC("Anthropic");
+  ANTHROPIC("Anthropic"),
+  CUSTOM_OPENAI("Custom OpenAI");
 
 
   private final String displayName;
@@ -31,6 +32,15 @@ public enum ByokModelProvider {
    */
   public static boolean isAzure(String providerDisplayName) {
     return AZURE.getDisplayName().equals(providerDisplayName);
+  }
+
+  /**
+   * Utility to check whether a provider stores endpoint credentials on each model entry instead of using a single
+   * provider-level API key.
+   */
+  public static boolean usesModelLevelCredentials(String providerDisplayName) {
+    return AZURE.getDisplayName().equals(providerDisplayName)
+        || CUSTOM_OPENAI.getDisplayName().equals(providerDisplayName);
   }
 
   @Override

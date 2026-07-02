@@ -32,9 +32,11 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 public class AddByokModelDialog extends TrayDialog {
 
   private static final int CONTAINER_WIDTH = 600;
+  private static final int DEFAULT_MAX_INPUT_TOKENS = 128_000;
+  private static final int DEFAULT_MAX_OUTPUT_TOKENS = 16_000;
 
   private Text modelIdText;
-  private Text deploymentUrlText;
+  private Text endpointUrlText;
   private Text apiKeyText;
   private Text displayNameText;
   private Button supportToolCallingCheck;
@@ -85,8 +87,8 @@ public class AddByokModelDialog extends TrayDialog {
     modelIdText.addModifyListener(this::onFieldChanged);
 
     // Provider-specific fields
-    if (providerName.equals(ByokModelProvider.AZURE.getDisplayName())) {
-      createAzureSpecificFields(container);
+    if (ByokModelProvider.usesModelLevelCredentials(providerName)) {
+      createModelCredentialFields(container);
     }
 
     // Display Name (optional for all providers)
@@ -114,12 +116,11 @@ public class AddByokModelDialog extends TrayDialog {
     return container;
   }
 
-  private void createAzureSpecificFields(Composite container) {
-    // Deployment URL *
-    new Label(container, SWT.NONE).setText(Messages.preferences_page_byok_addModel_deploymentUrl);
-    deploymentUrlText = new Text(container, SWT.BORDER);
-    deploymentUrlText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-    deploymentUrlText.addModifyListener(this::onFieldChanged);
+  private void createModelCredentialFields(Composite container) {
+    new Label(container, SWT.NONE).setText(getEndpointLabel());
+    endpointUrlText = new Text(container, SWT.BORDER);
+    endpointUrlText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    endpointUrlText.addModifyListener(this::onFieldChanged);
 
     // API Key *
     new Label(container, SWT.NONE).setText(Messages.preferences_page_byok_addModel_apiKey);
@@ -152,6 +153,13 @@ public class AddByokModelDialog extends TrayDialog {
         eyeClosedImg.dispose();
       }
     });
+  }
+
+  private String getEndpointLabel() {
+    if (ByokModelProvider.isAzure(providerName)) {
+      return Messages.preferences_page_byok_addModel_deploymentUrl;
+    }
+    return Messages.preferences_page_byok_addModel_baseUrl;
   }
 
   /**
@@ -191,8 +199,8 @@ public class AddByokModelDialog extends TrayDialog {
       return false;
     }
 
-    if (providerName.equals(ByokModelProvider.AZURE.getDisplayName())) {
-      if (deploymentUrlText == null || StringUtils.isBlank(deploymentUrlText.getText()) || apiKeyText == null
+    if (ByokModelProvider.usesModelLevelCredentials(providerName)) {
+      if (endpointUrlText == null || StringUtils.isBlank(endpointUrlText.getText()) || apiKeyText == null
           || StringUtils.isBlank(apiKeyText.getText())) {
         return false;
       }
@@ -232,9 +240,11 @@ public class AddByokModelDialog extends TrayDialog {
     model.setCustomModel(true);
 
     // Set provider-specific fields
-    if (providerName.equals(ByokModelProvider.AZURE.getDisplayName()) && deploymentUrlText != null
+    if (ByokModelProvider.usesModelLevelCredentials(providerName) && endpointUrlText != null
         && apiKeyText != null) {
-      model.setDeploymentUrl(deploymentUrlText.getText().trim());
+      String endpointUrl = endpointUrlText.getText().trim();
+      model.setBaseUrl(endpointUrl);
+      model.setDeploymentUrl(endpointUrl);
       model.setApiKey(apiKeyText.getText().trim());
     }
 
@@ -243,6 +253,8 @@ public class AddByokModelDialog extends TrayDialog {
     String displayedName = displayNameText.getText().trim().isEmpty() ? modelIdText.getText().trim()
         : displayNameText.getText().trim();
     capabilities.setName(displayedName);
+    capabilities.setMaxInputTokens(DEFAULT_MAX_INPUT_TOKENS);
+    capabilities.setMaxOutputTokens(DEFAULT_MAX_OUTPUT_TOKENS);
     capabilities.setToolCalling(supportToolCallingCheck.getSelection());
     capabilities.setVision(supportVisionCheck.getSelection());
     model.setModelCapabilities(capabilities);

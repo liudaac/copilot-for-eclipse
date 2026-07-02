@@ -30,6 +30,7 @@ public class Messages extends NLS {
   public static String preferences_page_byok_addModel_dialog_title;
   public static String preferences_page_byok_addModel_modelId;
   public static String preferences_page_byok_addModel_deploymentUrl;
+  public static String preferences_page_byok_addModel_baseUrl;
   public static String preferences_page_byok_addModel_apiKey;
   public static String preferences_page_byok_addModel_displayName;
   public static String preferences_page_byok_addModel_supportVision;

@@ -142,7 +142,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
   private void initializeProviderStates() {
     for (ByokModelProvider provider : ByokModelProvider.values()) {
       String providerName = provider.getDisplayName();
-      if (provider == ByokModelProvider.AZURE) {
+      if (ByokModelProvider.usesModelLevelCredentials(providerName)) {
         remotelyLoadedProviders.add(providerName);
       }
     }
@@ -509,17 +509,17 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     removeModelButton.setEnabled(selectedModel != null && selectedModel.isCustomModel());
     toggleStatusButton.setEnabled(selectedModel != null);
     reloadButton.setEnabled(true);
-    // Check if provider is not Azure and has API key
+    // Check if provider uses provider-level API keys and has one configured.
     boolean canManageApiKey = false;
     String providerName = getSelectedProviderName();
     if (providerName != null) {
-      boolean isAzureProvider = ByokModelProvider.isAzure(providerName);
+      boolean usesModelLevelCredentials = ByokModelProvider.usesModelLevelCredentials(providerName);
       boolean hasApiKeyForProvider = byProviderApiKeys.containsKey(providerName);
-      canManageApiKey = !isAzureProvider && hasApiKeyForProvider;
+      canManageApiKey = !usesModelLevelCredentials && hasApiKeyForProvider;
     }
-    // Change API: enabled when provider is not Azure and has API key
+    // Change API: enabled when provider uses provider-level API keys and has one configured.
     changeApiButton.setEnabled(canManageApiKey);
-    // Delete API: enabled when provider is not Azure and has API key
+    // Delete API: enabled when provider uses provider-level API keys and has one configured.
     deleteApiButton.setEnabled(canManageApiKey);
   }
 
@@ -703,7 +703,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
     if (providerName != null) {
       final String finalProviderName = providerName;
       boolean hasApiKey = byProviderApiKeys.containsKey(providerName);
-      if (!hasApiKey && !ByokModelProvider.isAzure(providerName)) {
+      if (!hasApiKey && !ByokModelProvider.usesModelLevelCredentials(providerName)) {
         AddApiKeyDialog apiKeyDialog = new AddApiKeyDialog(getShell(), providerName, apiKey -> {
           if (apiKey != null && StringUtils.isNotBlank(apiKey) && byokService != null) {
             executeAsyncProviderOperation(finalProviderName, byokService.addApiKey(finalProviderName, apiKey),
@@ -823,7 +823,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
   private void onChangeProviderApi() {
     String providerName = getSelectedProviderName();
     String apiKey = byProviderApiKeys.get(providerName);
-    if (!ByokModelProvider.isAzure(providerName)) {
+    if (!ByokModelProvider.usesModelLevelCredentials(providerName)) {
       final String finalProviderName = providerName;
       if (!showChangeApiConfirmationDialog(finalProviderName)) {
         return;
@@ -851,7 +851,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
 
     final String finalProviderName = providerName;
 
-    if (!ByokModelProvider.isAzure(providerName)) {
+    if (!ByokModelProvider.usesModelLevelCredentials(providerName)) {
       if (showDeleteApiKeyConfirmationDialog(providerName)) {
         executeAsyncProviderOperation(finalProviderName, byokService.deleteApiKey(providerName),
             "Failed to delete API key");
@@ -949,7 +949,7 @@ public class ByokPreferencePage extends PreferencePage implements IWorkbenchPref
         if (page.loadingProviders.contains(providerName)) {
           return true;
         }
-        if (ByokModelProvider.isAzure(providerName)) {
+        if (ByokModelProvider.usesModelLevelCredentials(providerName)) {
           List<ByokModel> models = page.byProviderModels.get(providerName);
           return models != null && !models.isEmpty();
         }

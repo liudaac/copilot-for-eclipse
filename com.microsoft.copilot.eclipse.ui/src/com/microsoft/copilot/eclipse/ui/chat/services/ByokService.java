@@ -257,7 +257,7 @@ public class ByokService extends ChatBaseService {
    * Reload a single provider's complete data (API keys, local models, and remote models if applicable).
    */
   public CompletableFuture<Void> reloadProvider(String providerName) {
-    if (ByokModelProvider.isAzure(providerName)) {
+    if (ByokModelProvider.usesModelLevelCredentials(providerName)) {
       return loadLocalModels();
     }
 
@@ -369,7 +369,7 @@ public class ByokService extends ChatBaseService {
         return;
       }
       List<String> providersToFetch = currentApiKeys.keySet().stream()
-          .filter(providerName -> !ByokModelProvider.isAzure(providerName)).toList();
+          .filter(providerName -> !ByokModelProvider.usesModelLevelCredentials(providerName)).toList();
       providersRef.set(providersToFetch);
     });
     List<String> providersToFetch = providersRef.get();
